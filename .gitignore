@@ -1,0 +1,29 @@
+# Build artifacts
+src/game
+src/*.o
+src/*.gch
+
+# Web build output
+src/index.html
+src/index.js
+src/index.wasm
+src/index.data
+
+# Test artifacts
+src/tests
+src/tests.cpp
+src/tests_heavy
+src/tests_heavy.cpp
+
+# Generated documentation
+src/docs/api/
+
+# Editor / OS noise
+src/.DS_Store
+src/*.swp
+src/*.swo
+src/*~
+src/.vscode/
+src/.idea/
+src/img
+src/audio

@@ -1,0 +1,45 @@
+# Doxyfile — Hacker Story documentation configuration
+# Run: doxygen Doxyfile
+# Output: docs/api/html/index.html
+
+PROJECT_NAME           = "Hacker Story"
+PROJECT_NUMBER         = 0.1.0
+PROJECT_BRIEF          = "A Hacker-themed life-simulation game inspired by Game Dev Story"
+
+OUTPUT_DIRECTORY       = docs/api
+
+INPUT                  = .
+FILE_PATTERNS          = *.h *.cpp
+RECURSIVE              = NO
+EXCLUDE_PATTERNS       = */test_suites/* tests.cpp tests_heavy.cpp
+
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+EXTRACT_PRIVATE        = NO
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_COLORSTYLE        = DARK
+
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = NO
+
+HAVE_DOT               = NO
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+
+SORT_MEMBER_DOCS       = NO
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+PREDEFINED             = DEBUG
+
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+
+JAVADOC_AUTOBRIEF      = YES
+TAB_SIZE               = 4

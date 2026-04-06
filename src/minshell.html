@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Hacker Story</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      color: #00dc50;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #canvas-container {
+      position: relative;
+    }
+
+    canvas.emscripten {
+      display: block;
+      background: #0a0a0a;
+      /* prevent mobile browsers from handling touch events on the canvas */
+      touch-action: none;
+    }
+
+    #loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #0a0a0a;
+      z-index: 10;
+    }
+
+    #loader-title {
+      font-size: 28px;
+      letter-spacing: 4px;
+      color: #c8ffd8;
+      margin-bottom: 24px;
+    }
+
+    #status {
+      font-size: 13px;
+      color: #3a6a3a;
+      margin-bottom: 10px;
+      min-height: 1em;
+    }
+
+    #progress {
+      width: 320px;
+      height: 3px;
+      background: #1a2a1a;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #progress-bar {
+      height: 100%;
+      background: #00dc50;
+      width: 0%;
+      transition: width 0.15s ease-out;
+    }
+
+    #footer {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #1e3a1e;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas class="emscripten" id="canvas"
+            oncontextmenu="event.preventDefault()"
+            tabindex="-1"></canvas>
+
+    <div id="loader">
+      <div id="loader-title">HACKER STORY</div>
+      <div id="status">Initialising...</div>
+      <div id="progress"><div id="progress-bar"></div></div>
+      <div id="footer">a life in code</div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var statusEl   = document.getElementById('status');
+    var progressEl = document.getElementById('progress-bar');
+    var loaderEl   = document.getElementById('loader');
+
+    var Module = {
+      canvas: (function() {
+        var canvas = document.getElementById('canvas');
+        // Give the canvas keyboard focus immediately
+        canvas.addEventListener('click', function() { canvas.focus(); }, false);
+        return canvas;
+      })(),
+
+      setStatus: function(text) {
+        if (statusEl) statusEl.textContent = text || '';
+      },
+
+      monitorRunDependencies: function(left) {
+        var total = Module.monitorRunDependencies.total || left;
+        if (left > total) total = left;
+        Module.monitorRunDependencies.total = total;
+        if (total > 0) {
+          var pct = Math.round(100 * (total - left) / total);
+          if (progressEl) progressEl.style.width = pct + '%';
+        }
+        if (left === 0) {
+          if (statusEl)   statusEl.textContent  = '';
+          if (loaderEl)   loaderEl.style.display = 'none';
+        }
+      },
+
+      onRuntimeInitialized: function() {
+        if (loaderEl) loaderEl.style.display = 'none';
+      }
+    };
+
+    // Catch and display any JS-level errors
+    window.onerror = function(msg, url, line) {
+      if (statusEl) {
+        statusEl.style.color = '#ff4040';
+        statusEl.textContent = 'Error: ' + msg;
+      }
+    };
+  </script>
+  {{{ SCRIPT }}}
+</body>
+</html>
