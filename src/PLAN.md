@@ -22,7 +22,7 @@ What we are doing here is FAR less ambitious than my other game, Project.RPG (a 
 
 The initial core-loop is centered around text-based decision making, which will impact what path your character and world develop.
 
-Current project status: the game framework and character creation flow are complete and stable. The gameplay screen is now a well-composed scene with real atmosphere: a scrolling perspective grid with star field background, a top marquee news ticker, a right-side news feed panel, a centered semi-transparent player display pane, a live HUD (name, age, date, session timer, pause state, time scale, cash, gold price), and a fading welcome overlay. The news event catalogue covers 61 historical computing events from 1936 to 2038 with full year/month/day precision, birth-date filtered so players only see events from their own lifetime. Gold price is tracked historically via interpolated annual data from 1900–2050. All 132 unit tests pass. The long-term vision is a full life-simulation management game where the player grows from birth through childhood, career, and beyond — shaped by historical computing milestones, personal decisions, financial state, and random life events.
+Current project status: the game framework and character creation flow are complete and stable. The gameplay screen is now a well-composed scene with real atmosphere: a scrolling perspective grid with star field background, a top marquee news ticker, a right-side news feed panel, a centered semi-transparent player display pane, a live HUD (name, age, date, session timer, pause state, time scale, cash, gold price, work state, wellbeing, computer state), and a fading welcome overlay. The news event catalogue covers 61 historical computing events from 1936 to 2038 with full year/month/day precision, birth-date filtered so players only see events from their own lifetime. Gold price is tracked historically via interpolated annual data from 1900–2050. The first real life-sim loop is now live: at age 16 the player can start job-hunting, daily rolls can produce a grocery-store clerk offer, weekday shifts accumulate, Friday paydays add cash, attendance is modulated by mental/physical health, the player can buy a first used home computer for $300, and home-computer use is now a persistent preference (Practice / Hacking / Gaming / Social Media / Programming) that drives daily skill growth until the player changes it. All 156 unit tests pass. The long-term vision is a full life-simulation management game where the player grows from birth through childhood, career, and beyond — shaped by historical computing milestones, personal decisions, financial state, and random life events.
 
 Before we can really get into the gameplay, first we must build things such as "Scene Management", "Gamestate Management", be able to select between different scenes that all have access to a global gamestate, separate the logic of the game from the rendering of it (so we can optionally play the game in text-only mode, which could be VERY useful for automating debugging), and other "Game Framework" essential tools to make building the more fun aspects...more fun.
 
@@ -66,7 +66,7 @@ The general scene work-flow should start like this:
 - [x] 15 starting locations, identical pool for both random and custom paths
 - [x] Desktop window is resizable; fixed 1920×1080 render target stretches to current window size
 - [x] Build system — desktop (`make game`), web (`make web`), tests (`make tests`), docs (`make docs`)
-- [x] 112 CxxTest unit tests, all passing, `-Wall -Werror` clean
+- [x] 156 CxxTest unit tests, all passing, `-Wall -Werror` clean
 - [x] Starter asset folders populated: `img/`, `audio/`, `shaders/` are in workspace and preloaded by current `Makefile`
 
 ### Gameplay — foundations started
@@ -79,10 +79,10 @@ The general scene work-flow should start like this:
 - [x] Player display pane — centered on screen, semi-transparent background, no label clutter
 - [x] Welcome message overlay — fades out after 5 real seconds; renders above the player pane; both lines in matching green
 - [ ] Technology era definitions tied to birth year + calendar year
-- [ ] Decision popup modal system — the primary interaction driver (see Future Mechanics below)
+- [x] Decision popup modal system — the primary interaction driver (first pass live; age-16 work prompt, grocery-store offer, used-computer purchase, computer-use preference chooser)
 - [ ] First-introduction events — first computer, first video game, first internet access; triggers vary by birth year and wealth
 - [ ] Hacking / project system (core game loop — the Game Dev Story equivalent)
-- [ ] Skill system (grows from conditions + choices)
+- [x] Skill system first pass — tracked skills, per-skill XP/levels, daily growth from work/computer use, persistent computer-use preference
 - [ ] NPC / contacts system
 - [ ] ECS component traits for gameplay entities (employees, projects, contacts)
 - [x] Achievement system first pass (title browser + gameplay popup modal + birth/epoch/Y2K/2038 achievements)
@@ -100,14 +100,17 @@ The general scene work-flow should start like this:
 The game is a life-simulation management game centred on the computing and hacking world. All major gameplay unfolds through **popup decision modals** triggered by news events, life milestones, and random occurrences. No WASD; everything is arrow-key and ENTER driven.
 
 #### Decision popup modal system
-- [ ] `DecisionEvent` struct: prompt text, array of choices, consequences per choice
-- [ ] Modal renderer in `libdraw.cpp`: frosted-panel overlay with choice list, keyboard navigation
-- [ ] `GameState` queue for pending decision events (similar to achievement popup queue)
-- [ ] Consequence resolver in `libinput.cpp`: modifies `GameState` fields based on selected choice
-- [ ] Decisions can modify: cash, skills, relationships, health, reputation, unlocked paths
+- [x] `DecisionEvent` struct: prompt text, array of choices, consequences per choice
+- [x] Modal renderer in `libdraw.cpp`: frosted-panel overlay with choice list, keyboard navigation
+- [x] `GameState` queue for pending decision events (similar to achievement popup queue)
+- [x] Consequence resolver in `libinput.cpp`: modifies `GameState` fields based on selected choice
+- [x] Decisions currently modify: cash, job-search state, employment state, computer ownership, persistent computer-use preference
+- [ ] Expand decision consequences into relationships, reputation, long-term flags, and richer branching outcomes
 
 #### Financial system
 - [x] `cash` — liquid cash on hand (USD float)
+- [x] First earned-income loop — grocery-store clerk shifts and Friday paydays
+- [x] First hardware purchase loop — used home computer purchase at $300
 - [ ] Bank accounts — savings and chequing; interest; overdraft
 - [ ] Credit cards — credit limit, balance, minimum payment, interest rate
 - [ ] Debit cards — linked to bank account
@@ -125,12 +128,14 @@ The game is a life-simulation management game centred on the computing and hacki
 
 #### Skill system
 - [ ] Skill tree rooted in genetic conditions (Talent, Health, Wealth) and environment
-- [ ] Skills: Programming, Networking, Social Engineering, Hardware, Cryptography, Business, Communication
-- [ ] Skills grow through choices, jobs, projects, and time investment
+- [x] First tracked skills live: Computer Basics, Hacking, Gaming, Social Media, Programming, Socializing
+- [x] Skills grow through choices, jobs, and daily time investment
 - [ ] Skill gates control which opportunities become available
+- [ ] Add explicit dependency/gating rules so advanced computer-use paths depend on foundational skill levels
 
 #### Career and jobs
-- [ ] Job system: apply, interview (skill check), get hired, earn wages each pay period
+- [x] Job system first pass: opt into job search at age 16, daily offer rolls, accept/decline grocery-store clerk, weekday shifts, Friday paydays
+- [ ] Job system expansion: interviews, firings, better jobs, and more than one role
 - [ ] Job types by era: paper route → tech support → junior dev → senior engineer → CTO / CEO / founder
 - [ ] Freelance / contractor gigs: one-off income events, time-limited, skill-gated
 - [ ] Unemployment and layoff as random catastrophe
@@ -151,7 +156,8 @@ The game is a life-simulation management game centred on the computing and hacki
 - [ ] Company formation: LLC → startup → acquisition or IPO path
 
 #### Computing and infrastructure
-- [ ] Personal computer inventory: buy, upgrade, sell hardware; era-appropriate specs matter
+- [x] First personal computer purchase loop — one used starter computer with persistent daily-use preference
+- [ ] Personal computer inventory expansion: buy, upgrade, sell hardware; era-appropriate specs matter
 - [ ] Home network: router, LAN, NAS, local server
 - [ ] Virtual private servers (VPS): rent remote compute, run services, host dark-web nodes
 - [ ] Data management: backups, storage, encryption; data-loss events if neglected
@@ -205,7 +211,7 @@ These are real life mechanics that can derail progression at any time:
 |---|---|
 | `config.h` | Screen size (1920×1080), FPS, window title |
 | `scene.h` | `Scene` enum |
-| `gamestate.h` | `GameState`, `PlayerData`, achievements, gameplay calendar helpers, condition enums + `env_to_str()` |
+| `gamestate.h` | `GameState`, `PlayerData`, skills, access/employment/wellbeing state, decision events, achievements, gameplay calendar helpers, condition enums + `env_to_str()` |
 | `input_state.h` | `InputState` — one-frame input snapshot |
 | `gamedata.h` | `ALL_LOCATIONS`, `YEAR_MIN/MAX/COUNT`, name pools, `random_player()`, `current_year()`, `unlocked_location_count()`, `GOLD_PRICE_TABLE[]`, `gold_price_for_year()` |
 | `libinput.h/.cpp` | `update_scene()` — all game logic dispatch |
@@ -219,6 +225,7 @@ These are real life mechanics that can derail progression at any time:
 | `test_suites/test_gamestate_lifecycle.h` | Scene transition tests |
 | `test_suites/test_character_creation.h` | Random + custom character creation tests |
 | `test_suites/test_news_events.h` | News event trigger logic and catalogue integrity tests |
+| `test_suites/test_gameplay_decisions.h` | Decision-event, job, attendance, computer purchase, and preference-flow tests |
 | `minshell.html` | Emscripten web shell |
 | `Doxyfile` | Doxygen → `docs/api/html/` |
 | `Makefile` | `make game / web / tests / docs / clean` |
@@ -236,6 +243,7 @@ health          Health      SICKLY | HEALTHY         (genetic)
 talent          Talent      SLOW | TALENTED          (genetic)
 env             Environment LOWER_CLASS | MIDDLE_CLASS | UPPER_CLASS
 cash            float       liquid cash on hand (USD); set at creation, grows through gameplay
+skills          array       tracked skill progress entries (level + xp) for Computer Basics / Hacking / Gaming / Social Media / Programming / Socializing
 ```
 
 ### Custom character screen field indices
@@ -250,11 +258,12 @@ cash            float       liquid cash on hand (USD); set at creation, grows th
 ```
 
 ### What the next session should tackle
-The gameplay screen now looks and feels like a real game. The next phase is turning the clock into an actual interactive loop:
-- **Decision popup modal system** — the most important next step; build the `DecisionEvent` struct, the modal renderer, the GameState queue, and the consequence resolver; wire the first real decision to a news event (e.g. "A neighbour has a computer — do you ask to use it?")
-- **First-introduction events** — first computer, first video game, first internet access; these are the seeds of the skill tree and career path; date and availability should depend on birth year, wealth, and environment
-- **Technology era gating** — tie available actions and events to the current calendar year so a 1975 player can't stumble into the web before 1991
-- **Skill system skeleton** — even a flat set of named skills with numeric values is enough to start gating decisions and showing growth
+The gameplay loop now exists. The next phase is turning these foundation systems into differentiated paths and era-aware content:
+- **First-introduction events** — first computer, first video game, first internet access; these should now hook into the existing decision system and skill model instead of creating new parallel systems
+- **Computer-use preference depth** — replace purely passive daily gains with occasional modal events/opportunities tied to the selected preference (Programming, Hacking, Gaming, Social Media, Practice)
+- **Technology era gating** — tie available actions, computer options, and internet/hacking opportunities to the current calendar year so a 1975 player cannot access a 2005-style internet path
+- **Job-system expansion** — add additional entry jobs, interviews/skill checks, and better career progression than the single grocery-store clerk loop
+- **Skill gating** — require foundations (for example Computer Basics) before advanced tracks like Hacking or Programming can fully accelerate
 - **Broader audio** — gameplay/event SFX beyond the current UI feedback layer
 - **Asset triage** — classify `img/` and `audio/` as keep / adapt / replace for cyberpunk tone
 
@@ -264,17 +273,32 @@ The gameplay screen now looks and feels like a real game. The next phase is turn
 - When adding presentation features, keep future replacement in mind. Asset filenames and source art may change.
 - UI SFX volume control, menu feedback, and music playback/rotation are already working. Build forward from them instead of replacing them casually.
 - Gameplay time progression is live. Respect the current discrete speed ladder and the birthday-based calendar start unless there is a concrete reason to redesign them.
+- The first gameplay loop is now live. Preserve the current separation between: job search, employment/pay, wellbeing/attendance, computer ownership, and computer-use preference. Do not collapse them into a single generic stat blob.
 - Achievement plumbing is live across title/gameplay. New achievements should reuse the existing unlock + popup path rather than inventing a parallel system.
 - News event plumbing is live. `ALL_EVENTS[]` in `events.h` is the single source of truth; add events there. The feed and marquee auto-filter by birth date — do not bypass that logic.
 - `gold_price_for_year(int year)` in `gamedata.h` provides interpolated historical gold prices; use or extend it rather than hardcoding values elsewhere.
 - Character birth date includes year/month/day; do not reintroduce January-1 assumptions.
+- Persistent choices now matter. The player's selected computer-use mode is intended to behave like a preference/default, not a one-shot action. If the next agent adds more preference-driven systems, keep them editable but sticky until changed.
 - Prefer placeholder integration now over waiting for perfect assets, but do not let placeholder fantasy tone leak into final cyberpunk design decisions.
 - Leave clean seams for the next agent: obvious ownership, documented resource paths, and tests for non-rendering behaviour.
 
 ### Direct handoff note
 - The gameplay screen is now visually complete as a foundation: star field, perspective grid, news marquee, news feed panel, centered player pane, HUD with cash and gold price, fading welcome overlay, achievement popups.
-- The codebase is stable. 132 unit tests pass. `-Wall -Werror` clean.
-- The next agent's highest-value move is implementing the **decision popup modal system** — it is the engine that turns the time-passing simulation into an actual game.
+- The codebase is stable. 156 unit tests pass. `-Wall -Werror` clean.
+- The decision system is already live and used for: age-16 job search, grocery-store job offers, used-computer purchase, and persistent computer-use preference selection/change.
+- Current live gameplay loop:
+  - turn 16 -> opt into job search
+  - daily unemployed offer rolls
+  - accept grocery-store clerk
+  - weekday work / Friday pay
+  - attendance reduced by low mental/physical health
+  - save $300 -> buy used computer
+  - choose persistent default computer-use mode
+  - daily skill gain follows that preference until changed
+- Exact next high-value move for the next agent:
+  - use the existing decision system to create the first preference-specific computer events
+  - start with **Programming** and **Hacking**
+  - do not just add more passive XP; add actual modal decisions/opportunities that depend on the current preference and calendar year
 - Be careful with the `Makefile`: it does not track header dependencies well. After header-heavy changes, prefer a clean rebuild (`make clean && make game`) before trusting the game binary.
 
 ### Inherited ECS headers (from previous project, not yet wired into gameplay)

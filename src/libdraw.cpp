@@ -126,6 +126,9 @@ static const int FONT_HEAD  = 40;  ///< Section / menu heading size
 static const int FONT_BODY  = 30;  ///< Body / field label size
 static const int FONT_SMALL = 20;  ///< Hint / caption size
 
+/// @brief Current user-facing game version shown on the title screen.
+static const char* GAME_VERSION_STRING = "v0.1.0";
+
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
 static const int CX     = SCREEN_WIDTH / 2;  ///< Horizontal center
@@ -141,6 +144,31 @@ static const int MARGIN = 80;                 ///< Left margin for left-aligned 
 static void draw_centered(const char* text, int y, int font_size, Color color) {
     int w = MeasureText(text, font_size);
     DrawText(text, CX - w / 2, y, font_size, color);
+}
+
+/**
+ * @brief Draw newline-delimited text as separate lines.
+ * @param text Full text block, optionally containing `\n`.
+ * @param x Left edge for all rendered lines.
+ * @param y Top edge of the first line.
+ * @param font_size Font size in pixels.
+ * @param color Text colour.
+ * @param line_gap Vertical spacing between line tops.
+ */
+static void draw_multiline_text(const string& text, int x, int y, int font_size,
+                                Color color, int line_gap) {
+    size_t start = 0;
+    int line_y = y;
+    while (start <= text.size()) {
+        const size_t end = text.find('\n', start);
+        const string line = (end == string::npos)
+            ? text.substr(start)
+            : text.substr(start, end - start);
+        DrawText(line.c_str(), x, line_y, font_size, color);
+        if (end == string::npos) break;
+        start = end + 1;
+        line_y += line_gap;
+    }
 }
 
 /**
@@ -297,6 +325,51 @@ static void draw_achievement_popup(const GameState& gs) {
 
     const string ttl = TextFormat("popup %.1fs", gs.achievement_popup_seconds_remaining);
     DrawText(ttl.c_str(), box_x + 28, box_y + 176, FONT_SMALL, COL_DIM);
+}
+
+/**
+ * @brief Draw the active gameplay decision popup modal.
+ * @param gs Current game state.
+ */
+static void draw_decision_popup(const GameState& gs) {
+    if (!gs.decision_popup_visible) return;
+
+    const int box_w = 980;
+    const int box_h = 420;
+    const int box_x = (SCREEN_WIDTH - box_w) / 2;
+    const int box_y = (SCREEN_HEIGHT - box_h) / 2;
+
+    DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{0, 0, 0, 135});
+    DrawRectangle(box_x, box_y, box_w, box_h, Color{4, 14, 9, 235});
+    DrawRectangle(box_x + 14, box_y + 14, box_w - 28, box_h - 28, Color{0, 0, 0, 120});
+    DrawRectangleLinesEx(Rectangle{
+            static_cast<float>(box_x), static_cast<float>(box_y),
+            static_cast<float>(box_w), static_cast<float>(box_h)},
+        4.0f, COL_GREEN);
+    DrawRectangleLinesEx(Rectangle{
+            static_cast<float>(box_x + 10), static_cast<float>(box_y + 10),
+            static_cast<float>(box_w - 20), static_cast<float>(box_h - 20)},
+        2.0f, COL_DIM);
+
+    for (int y = box_y + 34; y < box_y + box_h - 24; y += 12) {
+        DrawLine(box_x + 24, y, box_x + box_w - 24, y, Color{0, 120, 40, 18});
+    }
+
+    DrawText(gs.active_decision.title.c_str(), box_x + 36, box_y + 28, FONT_HEAD, COL_BRIGHT);
+    draw_multiline_text(gs.active_decision.prompt, box_x + 36, box_y + 96,
+                        FONT_BODY, COL_GREEN, 42);
+
+    int choice_y = box_y + 244;
+    for (int i = 0; i < static_cast<int>(gs.active_decision.choices.size()); i++) {
+        const bool selected = (i == gs.decision_selection);
+        if (selected) DrawText(">", box_x + 38, choice_y, FONT_HEAD, COL_CURSOR);
+        DrawText(gs.active_decision.choices[static_cast<size_t>(i)].label.c_str(),
+                 box_x + 78, choice_y, FONT_HEAD, selected ? COL_BRIGHT : COL_GREEN);
+        choice_y += 54;
+    }
+
+    DrawText("UP/DOWN: choose    ENTER: confirm",
+             box_x + 36, box_y + box_h - 44, FONT_SMALL, COL_DIM);
 }
 
 /**
@@ -517,6 +590,10 @@ static void draw_title(const GameState& gs) {
     draw_menu_item("ACHIEVEMENTS", LIST_Y + STEP,     gs.menu_selection == 1, FONT_HEAD);
     draw_menu_item("OPTIONS",      LIST_Y + STEP * 2, gs.menu_selection == 2, FONT_HEAD);
     draw_menu_item("QUIT",         LIST_Y + STEP * 3, gs.menu_selection == 3, FONT_HEAD);
+
+    const int version_w = MeasureText(GAME_VERSION_STRING, FONT_SMALL);
+    DrawText(GAME_VERSION_STRING, SCREEN_WIDTH - MARGIN - version_w,
+             SCREEN_HEIGHT - 40, FONT_SMALL, COL_DIM);
 
     DrawText("UP/DOWN: navigate    ENTER: select",
              MARGIN, SCREEN_HEIGHT - 40, FONT_SMALL, COL_DIM);
@@ -1018,6 +1095,34 @@ static void draw_gameplay(const GameState& gs) {
     const string session_line = gameplay_session_label(gs);
     const string pause_line   = string("Time: ") + (gs.gameplay_paused ? "PAUSED" : "RUNNING");
     const string scale_line   = "Scale: " + gameplay_scale_label(gs);
+    const string job_line = gs.employment.employed
+        ? string("Work: ") + job_title(gs.employment.current_job)
+        : (gs.employment.searching_for_job ? "Work: Searching for part-time job"
+                                           : "Work: Not job hunting");
+    const string computer_line = gs.access.owns_computer
+        ? "Computer: Owned"
+        : "Computer: None";
+    const string preference_line = string("Use: ")
+        + computer_use_preference_name(gs.access.computer_use_preference);
+    const SkillProgress& basics = gs.player.skills[skill_index(SkillId::COMPUTER_BASICS)];
+    const SkillProgress& hacking = gs.player.skills[skill_index(SkillId::HACKING)];
+    const SkillProgress& gaming = gs.player.skills[skill_index(SkillId::GAMING)];
+    const SkillProgress& social_media = gs.player.skills[skill_index(SkillId::SOCIAL_MEDIA)];
+    const SkillProgress& programming = gs.player.skills[skill_index(SkillId::PROGRAMMING)];
+    const string computer_skill_line = TextFormat("B:%d H:%d G:%d S:%d P:%d",
+        basics.level, hacking.level, gaming.level, social_media.level, programming.level);
+    const string wellbeing_line = TextFormat("Mind/Body: %d / %d",
+                                             gs.wellbeing.mental_health,
+                                             gs.wellbeing.physical_health);
+    int attendance_chance = (gs.wellbeing.mental_health + gs.wellbeing.physical_health) / 2;
+    if (attendance_chance < 0) attendance_chance = 0;
+    if (attendance_chance > 100) attendance_chance = 100;
+    const string shifts_line = TextFormat("Week: %d worked / %d missed",
+                                          gs.employment.shifts_worked_this_week,
+                                          gs.employment.missed_shifts_this_week);
+    const string attendance_line = TextFormat("Attendance: %d%%", attendance_chance);
+    const string paycheck_line = TextFormat("Last Paycheck: $%.2f",
+        static_cast<float>(gs.employment.last_paycheck_cents) / 100.0f);
 
     // ── HUD — name + time/date block ─────────────────────────────────────────
     DrawText(gs.player.name.c_str(), MARGIN, 46,  FONT_BODY,  COL_BRIGHT);
@@ -1030,9 +1135,17 @@ static void draw_gameplay(const GameState& gs) {
 
     const string cash_line = TextFormat("Cash: $%.2f", gs.player.cash);
     DrawText(cash_line.c_str(),      MARGIN, 268, FONT_SMALL, COL_CURSOR);
+    DrawText(job_line.c_str(),       MARGIN, 292, FONT_SMALL, COL_GREEN);
+    DrawText(computer_line.c_str(),  MARGIN, 316, FONT_SMALL, COL_GREEN);
+    DrawText(preference_line.c_str(),MARGIN, 340, FONT_SMALL, COL_DIM);
+    DrawText(computer_skill_line.c_str(), MARGIN, 364, FONT_SMALL, COL_DIM);
+    DrawText(wellbeing_line.c_str(), MARGIN, 388, FONT_SMALL, COL_DIM);
+    DrawText(shifts_line.c_str(),    MARGIN, 412, FONT_SMALL, COL_GREEN);
+    DrawText(attendance_line.c_str(),MARGIN, 436, FONT_SMALL, COL_DIM);
+    DrawText(paycheck_line.c_str(),  MARGIN, 460, FONT_SMALL, COL_DIM);
 
     const string gold_line = TextFormat("Gold: $%.2f/oz", gold_price_for_year(dt.year));
-    DrawText(gold_line.c_str(),      MARGIN, 292, FONT_SMALL, Color{255, 200, 50, 255});
+    DrawText(gold_line.c_str(),      MARGIN, 484, FONT_SMALL, Color{255, 200, 50, 255});
 
     draw_news_feed_panel(gs);
     draw_character_preview_panel(784, 352);
@@ -1055,8 +1168,9 @@ static void draw_gameplay(const GameState& gs) {
                       Color{COL_GREEN.r, COL_GREEN.g, COL_GREEN.b, w_alpha});
     }
     draw_achievement_popup(gs);
+    draw_decision_popup(gs);
 
-    DrawText("SPACE: pause    [: slower    ]: faster    ESC: back to title",
+    DrawText("SPACE: pause    ENTER: computer use    [: slower    ]: faster    ESC: back to title",
              MARGIN, SCREEN_HEIGHT - 40, FONT_SMALL, COL_DIM);
 }
 

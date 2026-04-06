@@ -68,7 +68,8 @@ index.html: $(GAME_SOURCES)
 FAST_TEST_HEADERS = unit_test.h \
 	test_suites/test_gamestate_lifecycle.h \
 	test_suites/test_character_creation.h \
-	test_suites/test_news_events.h
+	test_suites/test_news_events.h \
+	test_suites/test_gameplay_decisions.h
 
 tests.cpp: $(FAST_TEST_HEADERS)
 	cxxtestgen --error-printer -o tests.cpp $(FAST_TEST_HEADERS)

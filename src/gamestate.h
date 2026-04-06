@@ -34,6 +34,51 @@ enum class Environment { LOWER_CLASS, MIDDLE_CLASS, UPPER_CLASS };
 /// @brief UI sound-effect request emitted by scene logic.
 enum class UiSfx { NONE, NAVIGATE, SELECT };
 
+/// @brief Skill identifiers currently tracked by the simulation.
+enum class SkillId {
+    COMPUTER_BASICS = 0,            ///< Foundational ability to use a computer
+    HACKING,                        ///< Offensive / security experimentation skill
+    GAMING,                         ///< Familiarity gained through playing games
+    SOCIAL_MEDIA,                   ///< Social-media fluency and online community use
+    PROGRAMMING,                    ///< Writing and understanding code
+    SOCIALIZING,                    ///< Ability to interact smoothly with other people
+};
+
+/// Total number of defined skills.
+static constexpr int SKILL_COUNT = 6;
+
+/// @brief Persistent preference for how the player mainly uses a home computer.
+enum class ComputerUsePreference {
+    NONE = 0,                       ///< No persistent preference selected yet
+    PRACTICE,                       ///< General practice / basic computer use
+    HACKING,                        ///< Spend time trying to hack
+    GAMING,                         ///< Spend time playing games
+    SOCIAL_MEDIA,                   ///< Spend time on social platforms
+    PROGRAMMING,                    ///< Spend time writing code
+};
+
+/// @brief Current job assignment for the player.
+enum class JobId {
+    NONE = 0,                       ///< No active job
+    GROCERY_STORE_CLERK,            ///< Entry-level grocery store position
+};
+
+/// @brief Consequence types that a decision choice can trigger.
+enum class DecisionEffect {
+    NONE = 0,                       ///< No gameplay effect
+    START_JOB_SEARCH,               ///< Begin rolling for part-time job opportunities
+    DECLINE_JOB_SEARCH,             ///< Explicitly decline the current prompt
+    ACCEPT_GROCERY_STORE_JOB,       ///< Accept the grocery store clerk offer
+    DECLINE_GROCERY_STORE_JOB,      ///< Decline the grocery store clerk offer
+    BUY_STARTER_COMPUTER,           ///< Purchase the first personal computer
+    DECLINE_STARTER_COMPUTER,       ///< Decline the current computer purchase offer
+    SET_COMPUTER_USE_PRACTICE,      ///< Prefer general computer practice
+    SET_COMPUTER_USE_HACKING,       ///< Prefer hacking-related use
+    SET_COMPUTER_USE_GAMING,        ///< Prefer games-related use
+    SET_COMPUTER_USE_SOCIAL_MEDIA,  ///< Prefer social-media use
+    SET_COMPUTER_USE_PROGRAMMING,   ///< Prefer programming-related use
+};
+
 /// @brief Enumerates all achievements currently supported by the game.
 enum class AchievementId {
     BORN = 0,                      ///< Awarded when a new life begins
@@ -61,6 +106,62 @@ struct GameDateTime {
 };
 
 /**
+ * @brief Player-facing level and hidden experience progress for one skill.
+ */
+struct SkillProgress {
+    int level{0};                    ///< Current visible level in this skill
+    int xp{0};                       ///< Hidden progress toward the next level
+};
+
+/**
+ * @brief Access flags that gate what activities the player can perform.
+ */
+struct AccessState {
+    bool owns_computer{false};       ///< True once the player has purchased a computer
+    int last_computer_offer_cash_cents{-1}; ///< Highest cash total that has already triggered a purchase offer
+    ComputerUsePreference computer_use_preference{ComputerUsePreference::NONE}; ///< Preferred daily home-computer activity
+};
+
+/**
+ * @brief Long-running wellbeing values that affect consistency and growth.
+ */
+struct WellbeingState {
+    int mental_health{100};          ///< Emotional resilience / stability [0, 100]
+    int physical_health{100};        ///< Physical capacity / wellness [0, 100]
+};
+
+/**
+ * @brief Current employment-search and job state.
+ */
+struct EmploymentState {
+    bool searching_for_job{false};   ///< True while the player is actively looking for work
+    bool employed{false};            ///< True while the player holds a job
+    JobId current_job{JobId::NONE};  ///< Current job assignment
+    int hourly_wage_cents{0};        ///< Wage in cents for deterministic math
+    int last_job_search_roll_day{-1}; ///< Last in-game day index rolled for a job offer
+    int shifts_worked_this_week{0};  ///< Number of completed shifts since the last payday
+    int missed_shifts_this_week{0};  ///< Number of missed scheduled shifts since the last payday
+    int last_paycheck_cents{0};      ///< Most recent paycheck amount in cents
+};
+
+/**
+ * @brief One selectable outcome inside a decision popup.
+ */
+struct DecisionChoice {
+    string label;                    ///< Player-facing choice text
+    DecisionEffect effect{DecisionEffect::NONE}; ///< Gameplay effect to apply on selection
+};
+
+/**
+ * @brief Generic popup decision presented during gameplay.
+ */
+struct DecisionEvent {
+    string title;                    ///< Short modal title
+    string prompt;                   ///< Full decision prompt text
+    vector<DecisionChoice> choices;  ///< Available player responses
+};
+
+/**
  * @brief Convert an `Environment` value to a display string.
  * @param e Environment value.
  * @return Human-readable label.
@@ -81,6 +182,62 @@ static inline std::string env_to_str(Environment e) {
  */
 static inline int achievement_index(AchievementId id) {
     return static_cast<int>(id);
+}
+
+/**
+ * @brief Convert a skill id to a stable array index.
+ * @param id Skill identifier.
+ * @return Zero-based skill index.
+ */
+static inline int skill_index(SkillId id) {
+    return static_cast<int>(id);
+}
+
+/**
+ * @brief Return a display label for a tracked skill.
+ * @param id Skill identifier.
+ * @return Human-readable skill name.
+ */
+static inline const char* skill_name(SkillId id) {
+    switch (id) {
+    case SkillId::COMPUTER_BASICS: return "Computer Basics";
+    case SkillId::HACKING:         return "Hacking";
+    case SkillId::GAMING:          return "Gaming";
+    case SkillId::SOCIAL_MEDIA:    return "Social Media";
+    case SkillId::PROGRAMMING:     return "Programming";
+    case SkillId::SOCIALIZING:     return "Socializing";
+    }
+    return "Unknown Skill";
+}
+
+/**
+ * @brief Return the display label for a computer-use preference.
+ * @param pref Preference identifier.
+ * @return Human-readable preference name.
+ */
+static inline const char* computer_use_preference_name(ComputerUsePreference pref) {
+    switch (pref) {
+    case ComputerUsePreference::NONE:         return "Unset";
+    case ComputerUsePreference::PRACTICE:     return "Practice";
+    case ComputerUsePreference::HACKING:      return "Hacking";
+    case ComputerUsePreference::GAMING:       return "Gaming";
+    case ComputerUsePreference::SOCIAL_MEDIA: return "Social Media";
+    case ComputerUsePreference::PROGRAMMING:  return "Programming";
+    }
+    return "Unknown Preference";
+}
+
+/**
+ * @brief Return the display title for a job id.
+ * @param id Job identifier.
+ * @return Human-readable job title.
+ */
+static inline const char* job_title(JobId id) {
+    switch (id) {
+    case JobId::NONE:                return "Unemployed";
+    case JobId::GROCERY_STORE_CLERK: return "Grocery Store Clerk";
+    }
+    return "Unknown Job";
 }
 
 /**
@@ -213,6 +370,9 @@ struct PlayerData {
 
     // Finances
     float cash{0.0f};                              ///< Liquid cash on hand (USD)
+
+    // Skills
+    array<SkillProgress, SKILL_COUNT> skills{};    ///< Progress in tracked skills
 };
 
 // ── Global game state ─────────────────────────────────────────────────────────
@@ -259,6 +419,12 @@ struct GameState {
     float gameplay_time_accumulator{0.0f}; ///< Real-time accumulator toward the next game hour
     long long elapsed_game_hours{0};     ///< Hours elapsed since the campaign began
     float play_session_seconds{0.0f};    ///< Real-time duration spent in this gameplay run
+    int last_processed_game_day{-1};     ///< Cached elapsed-day value for once-per-day systems
+
+    // Core simulation systems
+    AccessState access;                  ///< Resource gates such as owning a computer
+    WellbeingState wellbeing;            ///< Mental and physical health state
+    EmploymentState employment;          ///< Job-search and employment progression
 
     // Achievement progression
     array<bool, ACHIEVEMENT_COUNT> achievements_unlocked{}; ///< Session-local achievement unlock state
@@ -270,6 +436,13 @@ struct GameState {
     // News event feed
     int          next_news_event_idx{0}; ///< Index of the next unchecked event in ALL_EVENTS
     vector<int>  news_feed;              ///< Triggered event indices, oldest first (capped at 30)
+
+    // Gameplay decision popup system
+    vector<DecisionEvent> decision_queue; ///< Pending gameplay decisions waiting to be shown
+    bool decision_popup_visible{false};   ///< True while a decision modal is active
+    DecisionEvent active_decision;        ///< Currently displayed decision modal
+    int decision_selection{0};            ///< Highlighted choice index within the active modal
+    bool age_16_job_prompt_shown{false};  ///< True once the first part-time job prompt has appeared
 
     // One-shot UI audio event emitted by update logic and consumed by renderer
     UiSfx        ui_sfx{UiSfx::NONE};    ///< Most recent queued UI sound effect
@@ -286,6 +459,37 @@ static inline GameDateTime gameplay_datetime(const GameState& gs) {
                                     gs.player.birth_month,
                                     gs.player.birth_day,
                                     gs.elapsed_game_hours);
+}
+
+/**
+ * @brief Return the elapsed whole-day index since the campaign began.
+ * @param gs Current game state.
+ * @return Zero-based count of full in-game days since the birth date.
+ */
+static inline int gameplay_day_index(const GameState& gs) {
+    return static_cast<int>(gs.elapsed_game_hours / 24LL);
+}
+
+/**
+ * @brief Return the elapsed whole-day index for a raw hour count.
+ * @param elapsed_game_hours Hours elapsed since the campaign began.
+ * @return Zero-based count of full in-game days since the birth date.
+ */
+static inline int gameplay_day_index_from_hours(long long elapsed_game_hours) {
+    return static_cast<int>(elapsed_game_hours / 24LL);
+}
+
+/**
+ * @brief Return the day of week for a civil calendar date.
+ * @param year Four-digit year.
+ * @param month Month number [1, 12].
+ * @param day Day of month [1, 31].
+ * @return Day-of-week index where 0=Sunday and 6=Saturday.
+ */
+static inline int day_of_week(int year, int month, int day) {
+    static const int OFFSETS[12] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+    if (month < 3) year--;
+    return (year + year / 4 - year / 100 + year / 400 + OFFSETS[month - 1] + day) % 7;
 }
 
 /**
