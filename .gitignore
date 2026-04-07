@@ -27,3 +27,4 @@ src/.vscode/
 src/.idea/
 src/img
 src/audio
+*.png
