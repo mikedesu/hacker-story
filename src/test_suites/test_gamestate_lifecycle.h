@@ -68,6 +68,7 @@ public:
 
     void test_enter_on_new_game_transitions_to_character_create() {
         GameState gs;
+        gs.title_menu_revealed = true;
         InputState in;
         in.enter_pressed = true;
         update_scene(gs, in);
@@ -93,6 +94,7 @@ public:
 
     void test_down_then_enter_sets_quit() {
         GameState gs;
+        gs.title_menu_revealed = true;
         InputState nav;
         nav.down_pressed = true;
         update_scene(gs, nav);
@@ -114,6 +116,7 @@ public:
 
     void test_up_wraps_from_zero_to_last() {
         GameState gs;
+        gs.title_menu_revealed = true;
         TS_ASSERT_EQUALS(gs.menu_selection, 0);
         InputState up;
         up.up_pressed = true;
@@ -123,6 +126,7 @@ public:
 
     void test_down_advances_selection() {
         GameState gs;
+        gs.title_menu_revealed = true;
         InputState dn;
         dn.down_pressed = true;
         update_scene(gs, dn);
@@ -131,6 +135,7 @@ public:
 
     void test_down_then_enter_on_title_opens_options() {
         GameState gs;
+        gs.title_menu_revealed = true;
         InputState dn;
         dn.down_pressed = true;
         update_scene(gs, dn);
@@ -145,6 +150,7 @@ public:
 
     void test_down_then_enter_on_title_opens_achievements() {
         GameState gs;
+        gs.title_menu_revealed = true;
         InputState dn;
         dn.down_pressed = true;
         update_scene(gs, dn);
@@ -414,112 +420,112 @@ public:
         TS_ASSERT(!achievement_unlocked(gs, AchievementId::SURVIVED_2038));
     }
 
-    void test_left_bracket_slows_gameplay_time_by_doubling_seconds_per_hour() {
+    void test_left_arrow_slows_gameplay_time_by_doubling_seconds_per_hour() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = 0.5f;
 
         InputState in;
-        in.left_bracket_pressed = true;
+        in.left_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, 1.0f, 0.001f);
     }
 
-    void test_right_bracket_speeds_up_gameplay_time_by_halving_seconds_per_hour() {
+    void test_right_arrow_speeds_up_gameplay_time_by_halving_seconds_per_hour() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = 1.0f;
 
         InputState in;
-        in.right_bracket_pressed = true;
+        in.right_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, 0.5f, 0.001f);
     }
 
-    void test_right_bracket_steps_from_sixteen_hours_per_second_to_one_day_per_second() {
+    void test_right_arrow_steps_from_sixteen_hours_per_second_to_one_day_per_second() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = 1.0f / 16.0f;
 
         InputState in;
-        in.right_bracket_pressed = true;
+        in.right_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, 1.0f / 24.0f, 0.001f);
     }
 
-    void test_left_bracket_steps_from_one_day_per_second_to_sixteen_hours_per_second() {
+    void test_left_arrow_steps_from_one_day_per_second_to_sixteen_hours_per_second() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = 1.0f / 24.0f;
 
         InputState in;
-        in.left_bracket_pressed = true;
+        in.left_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, 1.0f / 16.0f, 0.001f);
     }
 
-    void test_left_bracket_respects_slowest_time_cap() {
+    void test_left_arrow_respects_slowest_time_cap() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = GAMEPLAY_SECONDS_PER_HOUR_MAX;
 
         InputState in;
-        in.left_bracket_pressed = true;
+        in.left_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, GAMEPLAY_SECONDS_PER_HOUR_MAX, 0.001f);
     }
 
-    void test_right_bracket_respects_fastest_time_cap() {
+    void test_right_arrow_respects_fastest_time_cap() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = GAMEPLAY_SECONDS_PER_HOUR_MIN;
 
         InputState in;
-        in.right_bracket_pressed = true;
+        in.right_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, GAMEPLAY_SECONDS_PER_HOUR_MIN, 0.001f);
     }
 
-    void test_left_bracket_steps_down_from_month_to_sixteen_days_per_second() {
+    void test_left_arrow_steps_down_from_month_to_sixteen_days_per_second() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = 1.0f / 720.0f;
 
         InputState in;
-        in.left_bracket_pressed = true;
+        in.left_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, 1.0f / 384.0f, 0.001f);
     }
 
-    void test_right_bracket_steps_from_one_month_per_second_to_two_months_per_second() {
+    void test_right_arrow_steps_from_one_month_per_second_to_two_months_per_second() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = 1.0f / 720.0f;
 
         InputState in;
-        in.right_bracket_pressed = true;
+        in.right_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, 1.0f / 1440.0f, 0.001f);
     }
 
-    void test_right_bracket_reaches_one_year_per_second_cap() {
+    void test_right_arrow_reaches_one_year_per_second_cap() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = 1.0f / 5760.0f;
 
         InputState in;
-        in.right_bracket_pressed = true;
+        in.right_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, GAMEPLAY_SECONDS_PER_HOUR_MIN, 0.001f);
     }
 
-    void test_left_bracket_steps_down_from_year_cap_to_eight_months_per_second() {
+    void test_left_arrow_steps_down_from_year_cap_to_eight_months_per_second() {
         GameState gs;
         gs.current_scene = Scene::GAMEPLAY;
         gs.seconds_per_game_hour = GAMEPLAY_SECONDS_PER_HOUR_MIN;
 
         InputState in;
-        in.left_bracket_pressed = true;
+        in.left_pressed = true;
         update_scene(gs, in);
         TS_ASSERT_DELTA(gs.seconds_per_game_hour, 1.0f / 5760.0f, 0.001f);
     }
@@ -678,6 +684,7 @@ public:
 
     void test_menu_navigation_queues_navigate_sfx() {
         GameState gs;
+        gs.title_menu_revealed = true;
         InputState dn;
         dn.down_pressed = true;
         update_scene(gs, dn);
@@ -687,10 +694,79 @@ public:
 
     void test_enter_on_title_queues_select_sfx() {
         GameState gs;
+        gs.title_menu_revealed = true;
         InputState enter;
         enter.enter_pressed = true;
         update_scene(gs, enter);
         TS_ASSERT_EQUALS(gs.ui_sfx, UiSfx::SELECT);
         TS_ASSERT_EQUALS(gs.ui_sfx_event_id, 1U);
+    }
+
+    // ── Title menu reveal gate ────────────────────────────────────────────────
+
+    void test_title_menu_starts_hidden() {
+        GameState gs;
+        TS_ASSERT(!gs.title_menu_revealed);
+    }
+
+    void test_first_keypress_on_title_reveals_menu() {
+        GameState gs;
+        InputState dn;
+        dn.down_pressed = true;
+        update_scene(gs, dn);
+        TS_ASSERT(gs.title_menu_revealed);
+    }
+
+    void test_first_keypress_on_title_does_not_navigate_or_select() {
+        GameState gs;
+        // First press: down should reveal but not move selection from 0
+        InputState dn;
+        dn.down_pressed = true;
+        update_scene(gs, dn);
+        TS_ASSERT_EQUALS(gs.menu_selection, 0);
+
+        // First press scenario with enter: should reveal but not transition
+        GameState gs2;
+        InputState enter;
+        enter.enter_pressed = true;
+        update_scene(gs2, enter);
+        TS_ASSERT(gs2.title_menu_revealed);
+        TS_ASSERT_EQUALS(gs2.current_scene, Scene::TITLE);
+        TS_ASSERT(!gs2.quit_requested);
+    }
+
+    void test_reveal_does_not_queue_sfx() {
+        GameState gs;
+        InputState dn;
+        dn.down_pressed = true;
+        update_scene(gs, dn);
+        TS_ASSERT_EQUALS(gs.ui_sfx, UiSfx::NONE);
+    }
+
+    void test_subsequent_keypress_after_reveal_navigates_normally() {
+        GameState gs;
+        InputState dn;
+        dn.down_pressed = true;
+        update_scene(gs, dn);  // reveal
+        update_scene(gs, dn);  // navigate
+        TS_ASSERT_EQUALS(gs.menu_selection, 1);
+    }
+
+    void test_no_input_does_not_reveal_title_menu() {
+        GameState gs;
+        InputState idle;
+        update_scene(gs, idle);
+        TS_ASSERT(!gs.title_menu_revealed);
+    }
+
+    void test_reveal_persists_across_scene_transitions() {
+        GameState gs;
+        gs.title_menu_revealed = true;
+        gs.current_scene = Scene::OPTIONS;
+        InputState esc;
+        esc.escape_pressed = true;
+        update_scene(gs, esc);
+        TS_ASSERT_EQUALS(gs.current_scene, Scene::TITLE);
+        TS_ASSERT(gs.title_menu_revealed);
     }
 };

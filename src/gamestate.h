@@ -396,6 +396,7 @@ struct GameState {
     int  menu_selection{0};              ///< Index of the highlighted menu option
     bool quit_requested{false};          ///< Set true to exit the application
     bool new_game_started{false};        ///< True once character creation is confirmed
+    bool title_menu_revealed{false};     ///< Title screen menu items appear after the first keypress (session-sticky)
 
     // User options
     int  master_volume_percent{100};     ///< Global output volume [0, 100]

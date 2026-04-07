@@ -23,8 +23,6 @@ struct InputState {
     bool right_repeat{false};        ///< RIGHT arrow — fires on press and while held (key repeat)
     bool enter_pressed{false};       ///< ENTER / KP_ENTER
     bool space_pressed{false};       ///< SPACEBAR
-    bool left_bracket_pressed{false};  ///< `[` key
-    bool right_bracket_pressed{false}; ///< `]` key
     bool escape_pressed{false};      ///< ESCAPE
     bool backspace_pressed{false};   ///< BACKSPACE
     int  char_pressed{0};            ///< Unicode codepoint from GetCharPressed() (0 = none)

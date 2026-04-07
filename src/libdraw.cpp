@@ -121,8 +121,8 @@ static const Color COL_SHADOW   = {0,   60,  20,  150};  ///< Subtle shadow tint
 
 // ── Typography constants ──────────────────────────────────────────────────────
 
-static const int FONT_TITLE = 60;  ///< Main title size
-static const int FONT_HEAD  = 40;  ///< Section / menu heading size
+static const int FONT_TITLE = 70;  ///< Main title size
+static const int FONT_HEAD  = 30;  ///< Section / menu heading size
 static const int FONT_BODY  = 30;  ///< Body / field label size
 static const int FONT_SMALL = 20;  ///< Hint / caption size
 
@@ -581,15 +581,24 @@ void shutdown_draw_system() {
  * Navigated with UP/DOWN; confirmed with ENTER.
  */
 static void draw_title(const GameState& gs) {
-    draw_centered("HACKER STORY",   160, FONT_TITLE, COL_BRIGHT);
-    draw_centered("a life in code", 232, FONT_SMALL, COL_DIM);
+    draw_centered("HACKER STORY",   435, FONT_TITLE, COL_BRIGHT);
+    draw_centered("a life in code", 520, FONT_SMALL, COL_DIM);
 
-    const int LIST_Y = 390;
-    const int STEP   = 52;
-    draw_menu_item("NEW GAME",     LIST_Y,            gs.menu_selection == 0, FONT_HEAD);
-    draw_menu_item("ACHIEVEMENTS", LIST_Y + STEP,     gs.menu_selection == 1, FONT_HEAD);
-    draw_menu_item("OPTIONS",      LIST_Y + STEP * 2, gs.menu_selection == 2, FONT_HEAD);
-    draw_menu_item("QUIT",         LIST_Y + STEP * 3, gs.menu_selection == 3, FONT_HEAD);
+    if (gs.title_menu_revealed) {
+        const int LIST_Y = 590;
+        const int STEP   = 52;
+        const char* labels[4] = {"NEW GAME", "ACHIEVEMENTS", "OPTIONS", "QUIT"};
+        for (int i = 0; i < 4; i++) {
+            const int w = MeasureText(labels[i], FONT_HEAD);
+            const int x = CX - w / 2;
+            const int y = LIST_Y + STEP * i;
+            const bool selected = (gs.menu_selection == i);
+            if (selected) {
+                DrawText(">", x - 40, y, FONT_HEAD, COL_CURSOR);
+            }
+            DrawText(labels[i], x, y, FONT_HEAD, selected ? COL_BRIGHT : COL_GREEN);
+        }
+    }
 
     const int version_w = MeasureText(GAME_VERSION_STRING, FONT_SMALL);
     DrawText(GAME_VERSION_STRING, SCREEN_WIDTH - MARGIN - version_w,
@@ -964,7 +973,7 @@ static void draw_news_marquee(const GameState& gs) {
              FONT_SMALL, WHITE);
 }
 
-// ── Gameplay star field ───────────────────────────────────────────────────────
+// ── Animated background (used by every scene) ────────────────────────────────
 
 /** @brief One star in the background star field. */
 struct Star {
@@ -1007,13 +1016,16 @@ static void init_starfield() {
 /**
  * @brief Draw the background star field above the perspective grid horizon.
  *
- * Stars twinkle via a per-star sine phase.  Animation freezes when paused.
+ * Stars twinkle via a per-star sine phase.  Animation freezes only on the
+ * gameplay scene while the simulation is paused; on every other scene the
+ * stars always animate so the background reads as alive.
  *
- * @param gs Current game state (pause flag read here; nothing mutated).
+ * @param gs Current game state (scene + pause flag read here; nothing mutated).
  */
 static void draw_starfield(const GameState& gs) {
     init_starfield();
-    if (!gs.gameplay_paused) {
+    const bool freeze = (gs.current_scene == Scene::GAMEPLAY) && gs.gameplay_paused;
+    if (!freeze) {
         s_star_time += GetFrameTime();
     }
     for (const Star& s : s_stars) {
@@ -1024,22 +1036,26 @@ static void draw_starfield(const GameState& gs) {
     }
 }
 
-// ── Gameplay perspective grid ─────────────────────────────────────────────────
+// ── Animated perspective grid (used by every scene) ──────────────────────────
 
-/// @brief Accumulated right-to-left scroll offset for the gameplay grid (world units).
+/// @brief Accumulated right-to-left scroll offset for the perspective grid (world units).
 static float s_grid_scroll_x = 0.0f;
 
 /**
- * @brief Draw the cyberpunk perspective grid behind the player panel.
+ * @brief Draw the cyberpunk perspective grid as an animated scene background.
  *
  * A classic perspective grid on the "floor" below the horizon, with vertical
  * columns that scroll left while time is running — simulating flight into the
  * future.  Horizontal depth bands are drawn first; diverging column lines on top.
  *
- * @param gs Current game state (pause flag read here; nothing mutated).
+ * Scrolling freezes only on the gameplay scene while the simulation is paused;
+ * on every other scene the grid always scrolls.
+ *
+ * @param gs Current game state (scene + pause flag read here; nothing mutated).
  */
-static void draw_gameplay_grid(const GameState& gs) {
-    if (!gs.gameplay_paused) {
+static void draw_perspective_grid(const GameState& gs) {
+    const bool freeze = (gs.current_scene == Scene::GAMEPLAY) && gs.gameplay_paused;
+    if (!freeze) {
         s_grid_scroll_x += GetFrameTime() * 0.5f;
     }
 
@@ -1085,8 +1101,6 @@ static void draw_gameplay_grid(const GameState& gs) {
  */
 static void draw_gameplay(const GameState& gs) {
     draw_news_marquee(gs);
-    draw_starfield(gs);
-    draw_gameplay_grid(gs);
 
     const GameDateTime dt = gameplay_datetime(gs);
     const string age_line     = "Age: "   + to_string(gameplay_age_years(gs));
@@ -1170,7 +1184,7 @@ static void draw_gameplay(const GameState& gs) {
     draw_achievement_popup(gs);
     draw_decision_popup(gs);
 
-    DrawText("SPACE: pause    ENTER: computer use    [: slower    ]: faster    ESC: back to title",
+    DrawText("SPACE: pause    ENTER: computer use    LEFT: slower    RIGHT: faster    ESC: back to title",
              MARGIN, SCREEN_HEIGHT - 40, FONT_SMALL, COL_DIM);
 }
 
@@ -1178,9 +1192,15 @@ static void draw_gameplay(const GameState& gs) {
 
 /**
  * @brief Draw the active scene into the fixed-resolution render target.
+ *
+ * The animated starfield + perspective grid are rendered first so every scene
+ * shares the same cyberpunk background; per-scene content draws on top.
+ *
  * @param gs Current game state.
  */
 static void draw_scene_to_target(const GameState& gs) {
+    draw_starfield(gs);
+    draw_perspective_grid(gs);
     switch (gs.current_scene) {
     case Scene::TITLE:            draw_title(gs);            break;
     case Scene::ACHIEVEMENTS:     draw_achievements(gs);     break;

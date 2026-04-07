@@ -693,9 +693,24 @@ static bool speed_up_gameplay_time(GameState& gs) {
 /**
  * @brief Handle input on the Title screen.
  *
+ * The menu items stay invisible until the player makes their first keypress
+ * of the session; that initial press only reveals the menu and is otherwise
+ * consumed (it does not also navigate or select).  Once revealed the menu
+ * stays revealed for the rest of the session.
+ *
  * Options: 0 = NEW GAME → CHARACTER_CREATE, 1 = ACHIEVEMENTS, 2 = OPTIONS, 3 = QUIT.
  */
 static void update_title(GameState& gs, const InputState& in) {
+    if (!gs.title_menu_revealed) {
+        const bool any_key = in.up_pressed || in.down_pressed
+                          || in.left_pressed || in.right_pressed
+                          || in.enter_pressed || in.space_pressed
+                          || in.escape_pressed || in.backspace_pressed
+                          || in.char_pressed != 0;
+        if (any_key) gs.title_menu_revealed = true;
+        return;
+    }
+
     if (navigate_menu(gs.menu_selection, 4, in))
         queue_ui_sfx(gs, UiSfx::NAVIGATE);
 
@@ -983,9 +998,9 @@ static void update_gameplay(GameState& gs, const InputState& in) {
         queue_ui_sfx(gs, UiSfx::SELECT);
     }
 
-    if (in.left_bracket_pressed && slow_down_gameplay_time(gs))
+    if (in.left_pressed && slow_down_gameplay_time(gs))
         queue_ui_sfx(gs, UiSfx::NAVIGATE);
-    if (in.right_bracket_pressed && speed_up_gameplay_time(gs))
+    if (in.right_pressed && speed_up_gameplay_time(gs))
         queue_ui_sfx(gs, UiSfx::NAVIGATE);
     if (in.enter_pressed && gs.access.owns_computer) {
         queue_ui_sfx(gs, UiSfx::SELECT);

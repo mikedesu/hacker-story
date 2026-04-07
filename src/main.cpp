@@ -19,6 +19,10 @@
 #include <ctime>
 #include <raylib.h>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten/emscripten.h>
+#endif
+
 /**
  * @brief Poll raylib for this frame's input events.
  *
@@ -37,13 +41,27 @@ static InputState poll_input() {
     in.right_repeat      = IsKeyPressed(KEY_RIGHT) || IsKeyPressedRepeat(KEY_RIGHT);
     in.enter_pressed     = IsKeyPressed(KEY_ENTER)  || IsKeyPressed(KEY_KP_ENTER);
     in.space_pressed     = IsKeyPressed(KEY_SPACE);
-    in.left_bracket_pressed  = IsKeyPressed(KEY_LEFT_BRACKET);
-    in.right_bracket_pressed = IsKeyPressed(KEY_RIGHT_BRACKET);
     in.escape_pressed    = IsKeyPressed(KEY_ESCAPE);
     in.backspace_pressed = IsKeyPressed(KEY_BACKSPACE);
     in.char_pressed      = GetCharPressed();
     in.frame_seconds     = GetFrameTime();
     return in;
+}
+
+/// File-scope pointer to the live GameState so the per-frame callback used by
+/// `emscripten_set_main_loop` can reach it without an arg-passing variant.
+static GameState* g_gs = nullptr;
+
+/**
+ * @brief Run a single iteration of the game loop.
+ *
+ * Extracted into its own function so the same body drives both the desktop
+ * `while` loop and the emscripten per-frame callback under `PLATFORM_WEB`.
+ */
+static void update_draw_frame() {
+    InputState in = poll_input();
+    update_scene(*g_gs, in);
+    draw_scene(*g_gs);
 }
 
 /**
@@ -56,18 +74,23 @@ int main() {
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE);
-    SetTargetFPS(TARGET_FPS);
     init_draw_system();
 
     GameState gs;
+    g_gs = &gs;
 
+#if defined(PLATFORM_WEB)
+    // Browser drives the frame cadence via requestAnimationFrame.
+    // Intentionally do NOT call SetTargetFPS on web — raylib's WaitTime path
+    // routes through emscripten_sleep, which would require Asyncify.
+    emscripten_set_main_loop(update_draw_frame, 0, 1);
+#else
+    SetTargetFPS(TARGET_FPS);
     while (!WindowShouldClose() && !gs.quit_requested) {
-        InputState in = poll_input();
-        update_scene(gs, in);
-        draw_scene(gs);
+        update_draw_frame();
     }
-
     shutdown_draw_system();
     CloseWindow();
+#endif
     return 0;
 }
